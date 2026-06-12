@@ -1,6 +1,13 @@
-# LLM Guardrail Terraform Integration Layer
+# llm-guardrail
 
-This project provides a Terraform integration layer for the LLM Guardrail.
-It exposes a `llm_guardrail` data source that accepts a prompt and returns a safe response.
-The provider automatically injects the module name into the request context.
-Terraform logs any policy violations to the console during `plan`.
+A tiny, pure‑Python library that records the last 100 LLM responses together with a
+policy status (`passed` / `blocked`) and serves a very small live dashboard.
+
+## Features
+
+* **In‑memory store** – keeps only the most recent 100 entries.
+* **HTML dashboard** – auto‑refreshes every 5 seconds, shows timestamp, module,
+  prompt snippet and response snippet.
+* **Zero runtime dependencies** – only the Python standard library.
+
+## Quick start
