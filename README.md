@@ -1,7 +1,13 @@
-# llm-guardrail
+# LLM Guardrail
 
-A small, real‑time guardrail for LLM responses.
+This project provides a simple implementation of a guardrail system for Large Language Models (LLMs). It exposes Prometheus metrics for blocked and corrected responses.
 
-When a response matches a configured policy pattern, it is replaced with a safe fallback message that includes the policy name and a link to the policy definition. All corrections are logged with a unique correction ID.
+## Usage
 
-## Installation
+1. Create an instance of the `LLMGuardrail` class.
+2. Call the `increment_blocked` or `increment_corrected` methods to update the metrics.
+3. Use the `expose_metrics` method to retrieve the metrics in Prometheus format.
+
+## Testing
+
+Run the tests using `pytest`:

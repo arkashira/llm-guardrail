@@ -1,38 +1,35 @@
-import re
-import uuid
-from typing import List
+from dataclasses import dataclass
+from typing import Dict
 
-
-class Policy:
-    def __init__(self, name: str, pattern: str, url: str):
-        self.name = name
-        self.pattern = pattern
-        self.url = url
-
-
-class Correction:
-    def __init__(self, correction_id: str, original: str, corrected: str, policy_name: str):
-        self.correction_id = correction_id
-        self.original = original
-        self.corrected = corrected
-        self.policy_name = policy_name
-
+@dataclass
+class Metric:
+    module: str
+    policy: str
+    severity: str
+    value: int
 
 class LLMGuardrail:
-    def __init__(self, policies: List[Policy]):
-        self.policies = policies
-        self._corrections: List[Correction] = []
+    def __init__(self):
+        self.metrics = {
+            'llm_guardrail_blocked_total': [],
+            'llm_guardrail_corrected_total': []
+        }
 
-    def check_and_correct(self, response: str) -> str:
-        for policy in self.policies:
-            if re.search(policy.pattern, response, re.IGNORECASE):
-                corrected = f"Policy violation: {policy.name}. See {policy.url}"
-                correction_id = str(uuid.uuid4())
-                self._corrections.append(
-                    Correction(correction_id, response, corrected, policy.name)
-                )
-                return corrected
-        return response
+    def increment_blocked(self, module: str, policy: str, severity: str):
+        metric = Metric(module, policy, severity, 1)
+        self.metrics['llm_guardrail_blocked_total'].append(metric)
 
-    def get_corrections(self) -> List[Correction]:
-        return list(self._corrections)
+    def increment_corrected(self, module: str, policy: str, severity: str):
+        metric = Metric(module, policy, severity, 1)
+        self.metrics['llm_guardrail_corrected_total'].append(metric)
+
+    def get_metrics(self) -> Dict[str, list]:
+        return self.metrics
+
+    def expose_metrics(self) -> str:
+        metrics = self.get_metrics()
+        output = ''
+        for metric_name, metric_values in metrics.items():
+            for metric in metric_values:
+                output += f'{metric_name}{{module="{metric.module}", policy="{metric.policy}", severity="{metric.severity}"}} {metric.value}\n'
+        return output

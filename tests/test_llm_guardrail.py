@@ -1,45 +1,36 @@
-import re
-from llm_guardrail import LLMGuardrail, Policy
+from llm_guardrail import LLMGuardrail
+import pytest
 
+def test_increment_blocked():
+    guardrail = LLMGuardrail()
+    guardrail.increment_blocked('module1', 'policy1', 'severity1')
+    metrics = guardrail.get_metrics()
+    assert len(metrics['llm_guardrail_blocked_total']) == 1
+    assert metrics['llm_guardrail_blocked_total'][0].module == 'module1'
+    assert metrics['llm_guardrail_blocked_total'][0].policy == 'policy1'
+    assert metrics['llm_guardrail_blocked_total'][0].severity == 'severity1'
+    assert metrics['llm_guardrail_blocked_total'][0].value == 1
 
-def test_guardrail_corrects_violation():
-    policy = Policy(
-        name="no-personal-data",
-        pattern=r"\b\d{3}-\d{2}-\d{4}\b",
-        url="https://example.com/policies/no-personal-data",
-    )
-    guardrail = LLMGuardrail([policy])
+def test_increment_corrected():
+    guardrail = LLMGuardrail()
+    guardrail.increment_corrected('module2', 'policy2', 'severity2')
+    metrics = guardrail.get_metrics()
+    assert len(metrics['llm_guardrail_corrected_total']) == 1
+    assert metrics['llm_guardrail_corrected_total'][0].module == 'module2'
+    assert metrics['llm_guardrail_corrected_total'][0].policy == 'policy2'
+    assert metrics['llm_guardrail_corrected_total'][0].severity == 'severity2'
+    assert metrics['llm_guardrail_corrected_total'][0].value == 1
 
-    response = "My SSN is 123-45-6789."
-    corrected = guardrail.check_and_correct(response)
+def test_expose_metrics():
+    guardrail = LLMGuardrail()
+    guardrail.increment_blocked('module1', 'policy1', 'severity1')
+    guardrail.increment_corrected('module2', 'policy2', 'severity2')
+    metrics = guardrail.expose_metrics()
+    assert 'llm_guardrail_blocked_total{module="module1", policy="policy1", severity="severity1"} 1' in metrics
+    assert 'llm_guardrail_corrected_total{module="module2", policy="policy2", severity="severity2"} 1' in metrics
 
-    assert corrected != response
-    assert "Policy violation: no-personal-data" in corrected
-    assert "https://example.com/policies/no-personal-data" in corrected
-
-    corrections = guardrail.get_corrections()
-    assert len(corrections) == 1
-    corr = corrections[0]
-    assert re.match(
-        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-        corr.correction_id,
-        re.I,
-    )
-    assert corr.original == response
-    assert corr.corrected == corrected
-    assert corr.policy_name == "no-personal-data"
-
-
-def test_guardrail_passes_when_no_violation():
-    policy = Policy(
-        name="no-personal-data",
-        pattern=r"\b\d{3}-\d{2}-\d{4}\b",
-        url="https://example.com/policies/no-personal-data",
-    )
-    guardrail = LLMGuardrail([policy])
-
-    response = "Everything looks fine."
-    corrected = guardrail.check_and_correct(response)
-
-    assert corrected == response
-    assert guardrail.get_corrections() == []
+def test_empty_metrics():
+    guardrail = LLMGuardrail()
+    metrics = guardrail.get_metrics()
+    assert len(metrics['llm_guardrail_blocked_total']) == 0
+    assert len(metrics['llm_guardrail_corrected_total']) == 0
