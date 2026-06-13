@@ -1,14 +1,10 @@
-[build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
-
-[tool.poetry]
-name = "guardrail"
+[project]
+name = "llm-guardrail"
 version = "0.1.0"
-description = ""
+description = "A tiny LLM guardrail library for Terraform provider simulation."
+requires-python = ">=3.9"
+dependencies = []
 
-[tool.poetry.dependencies]
-python = "^3.8"
-
-[tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

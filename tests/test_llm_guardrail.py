@@ -1,36 +1,42 @@
-from llm_guardrail import LLMGuardrail
+import sys
+import io
 import pytest
+from llm_guardrail import guardrail, get_safe_response, GuardrailResult
 
-def test_increment_blocked():
-    guardrail = LLMGuardrail()
-    guardrail.increment_blocked('module1', 'policy1', 'severity1')
-    metrics = guardrail.get_metrics()
-    assert len(metrics['llm_guardrail_blocked_total']) == 1
-    assert metrics['llm_guardrail_blocked_total'][0].module == 'module1'
-    assert metrics['llm_guardrail_blocked_total'][0].policy == 'policy1'
-    assert metrics['llm_guardrail_blocked_total'][0].severity == 'severity1'
-    assert metrics['llm_guardrail_blocked_total'][0].value == 1
+def test_guardrail_happy_path():
+    prompt = "Hello, how are you?"
+    module = "example_module"
+    result = guardrail(prompt, module)
+    assert isinstance(result, GuardrailResult)
+    assert result.safe_response == prompt
+    assert result.violations == []
 
-def test_increment_corrected():
-    guardrail = LLMGuardrail()
-    guardrail.increment_corrected('module2', 'policy2', 'severity2')
-    metrics = guardrail.get_metrics()
-    assert len(metrics['llm_guardrail_corrected_total']) == 1
-    assert metrics['llm_guardrail_corrected_total'][0].module == 'module2'
-    assert metrics['llm_guardrail_corrected_total'][0].policy == 'policy2'
-    assert metrics['llm_guardrail_corrected_total'][0].severity == 'severity2'
-    assert metrics['llm_guardrail_corrected_total'][0].value == 1
+def test_guardrail_with_violation():
+    prompt = "This contains a BadWord that should be filtered."
+    module = "my_module"
+    captured = io.StringIO()
+    sys_stdout = sys.stdout
+    sys.stdout = captured
+    try:
+        result = guardrail(prompt, module)
+    finally:
+        sys.stdout = sys_stdout
+    # Verify that the banned word is masked
+    assert result.safe_response == "This contains a ******* that should be filtered."
+    # Verify that the violation list is correct
+    assert result.violations == ["badword"]
+    # Verify that a log line was printed
+    logged = captured.getvalue()
+    assert "[llm_guardrail] Policy violation in 'my_module': 'badword'" in logged
 
-def test_expose_metrics():
-    guardrail = LLMGuardrail()
-    guardrail.increment_blocked('module1', 'policy1', 'severity1')
-    guardrail.increment_corrected('module2', 'policy2', 'severity2')
-    metrics = guardrail.expose_metrics()
-    assert 'llm_guardrail_blocked_total{module="module1", policy="policy1", severity="severity1"} 1' in metrics
-    assert 'llm_guardrail_corrected_total{module="module2", policy="policy2", severity="severity2"} 1' in metrics
+def test_get_safe_response_returns_sanitized():
+    prompt = "Forbidden content should not appear."
+    module = "mod"
+    safe = get_safe_response(prompt, module)
+    assert safe == "********* content should not appear."
 
-def test_empty_metrics():
-    guardrail = LLMGuardrail()
-    metrics = guardrail.get_metrics()
-    assert len(metrics['llm_guardrail_blocked_total']) == 0
-    assert len(metrics['llm_guardrail_corrected_total']) == 0
+def test_get_safe_response_no_violation():
+    prompt = "All clear here."
+    module = "mod"
+    safe = get_safe_response(prompt, module)
+    assert safe == prompt

@@ -1,35 +1,27 @@
+import re
 from dataclasses import dataclass
-from typing import Dict
+from typing import List
+
+BANNED_WORDS = ["badword", "forbidden"]
 
 @dataclass
-class Metric:
-    module: str
-    policy: str
-    severity: str
-    value: int
+class GuardrailResult:
+    """Result of a guardrail check."""
+    safe_response: str
+    violations: List[str]
 
-class LLMGuardrail:
-    def __init__(self):
-        self.metrics = {
-            'llm_guardrail_blocked_total': [],
-            'llm_guardrail_corrected_total': []
-        }
+def guardrail(prompt: str, module_name: str) -> GuardrailResult:
+    """Checks a prompt for banned words and returns a sanitized response."""
+    violations = []
+    safe_response = prompt
+    for word in BANNED_WORDS:
+        if word.lower() in prompt.lower():
+            safe_response = re.sub(word, "*" * len(word), safe_response, flags=re.IGNORECASE)
+            violations.append(word)
+            print(f"[llm_guardrail] Policy violation in '{module_name}': '{word}'")
+    return GuardrailResult(safe_response, violations)
 
-    def increment_blocked(self, module: str, policy: str, severity: str):
-        metric = Metric(module, policy, severity, 1)
-        self.metrics['llm_guardrail_blocked_total'].append(metric)
-
-    def increment_corrected(self, module: str, policy: str, severity: str):
-        metric = Metric(module, policy, severity, 1)
-        self.metrics['llm_guardrail_corrected_total'].append(metric)
-
-    def get_metrics(self) -> Dict[str, list]:
-        return self.metrics
-
-    def expose_metrics(self) -> str:
-        metrics = self.get_metrics()
-        output = ''
-        for metric_name, metric_values in metrics.items():
-            for metric in metric_values:
-                output += f'{metric_name}{{module="{metric.module}", policy="{metric.policy}", severity="{metric.severity}"}} {metric.value}\n'
-        return output
+def get_safe_response(prompt: str, module_name: str) -> str:
+    """Returns a sanitized response for a given prompt."""
+    result = guardrail(prompt, module_name)
+    return result.safe_response
