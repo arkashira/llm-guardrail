@@ -1,13 +1,7 @@
-# LLM Guardrail
-
-This project provides a simple implementation of a guardrail system for Large Language Models (LLMs). It exposes Prometheus metrics for blocked and corrected responses.
+# Guardrail
+A Python project for monitoring and alerting on failure rates.
 
 ## Usage
-
-1. Create an instance of the `LLMGuardrail` class.
-2. Call the `increment_blocked` or `increment_corrected` methods to update the metrics.
-3. Use the `expose_metrics` method to retrieve the metrics in Prometheus format.
-
-## Testing
-
-Run the tests using `pytest`:
+1. Create a `Guardrail` instance with the desired threshold, window minutes, and silence minutes.
+2. Add calls to the `Guardrail` instance using the `add_call` method.
+3. The `Guardrail` instance will trigger an alert when the failure rate exceeds the threshold.

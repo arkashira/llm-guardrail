@@ -1,50 +1,42 @@
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import argparse
+from typing import List
 
 @dataclass
-class Alert:
-    name: str
-    threshold: float
-    window: int
-    silence_time: int
+class Call:
+    timestamp: datetime
+    success: bool
 
 class Guardrail:
-    def __init__(self, alert: Alert):
-        self.alert = alert
-        self.violations = []
+    def __init__(self, threshold: float, window_minutes: int, silence_minutes: int):
+        self.threshold = threshold
+        self.window_minutes = window_minutes
+        self.silence_minutes = silence_minutes
+        self.calls = []
+        self.last_alert = None
 
-    def check_failure_rate(self, total_calls: int, blocked_calls: int):
-        failure_rate = (blocked_calls / total_calls) * 100 if total_calls > 0 else 0
-        if failure_rate > self.alert.threshold:
-            self.violations.append(datetime.now())
-            return True
-        return False
+    def add_call(self, call: Call):
+        self.calls.append(call)
+        self.check_alert()
 
-    def send_alert(self):
-        if self.violations:
-            print(f"Sending alert: {self.alert.name}")
-            print(f"Slack message: Failure rate exceeded {self.alert.threshold}%")
-            print(f"Link to dashboard: https://example.com/dashboard")
+    def check_alert(self):
+        now = datetime.now()
+        window_start = now - timedelta(minutes=self.window_minutes)
+        window_calls = [call for call in self.calls if call.timestamp >= window_start]
+        if not window_calls:
+            return
+        failure_rate = sum(1 for call in window_calls if not call.success) / len(window_calls)
+        if failure_rate > self.threshold:
+            if self.last_alert is None or self.last_alert + timedelta(minutes=self.silence_minutes) < now:
+                self.trigger_alert(failure_rate)
+                self.last_alert = now
+
+    def trigger_alert(self, failure_rate: float):
+        print(f"Alert: Failure rate {failure_rate:.2%} exceeds threshold {self.threshold:.2%}")
+        print("Sending Slack message to ops channel...")
+        # Simulate sending a Slack message
+        print("https://example.com/dashboard")
 
     def silence_alert(self):
-        if self.violations and (datetime.now() - self.violations[-1]) > timedelta(minutes=self.alert.silence_time):
-            self.violations = []
-            print(f"Silencing alert: {self.alert.name}")
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--total-calls", type=int, help="Total number of calls")
-    parser.add_argument("--blocked-calls", type=int, help="Number of blocked calls")
-    args = parser.parse_args()
-
-    alert = Alert("guardrail_failure_rate_high", 5, 15, 30)
-    guardrail = Guardrail(alert)
-
-    if guardrail.check_failure_rate(args.total_calls, args.blocked_calls):
-        guardrail.send_alert()
-    guardrail.silence_alert()
-
-if __name__ == "__main__":
-    main()
+        self.last_alert = None

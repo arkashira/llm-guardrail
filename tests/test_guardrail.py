@@ -1,35 +1,29 @@
-from guardrail import Guardrail, Alert
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
+from guardrail import Call, Guardrail
 
-def test_check_failure_rate():
-    alert = Alert("guardrail_failure_rate_high", 5, 15, 30)
-    guardrail = Guardrail(alert)
-    assert guardrail.check_failure_rate(100, 6) == True
-    assert guardrail.check_failure_rate(100, 4) == False
+def test_guardrail_failure_rate_high():
+    guardrail = Guardrail(threshold=0.05, window_minutes=15, silence_minutes=30)
+    for i in range(100):
+        guardrail.add_call(Call(timestamp=datetime.now(), success=True))
+    for i in range(6):
+        guardrail.add_call(Call(timestamp=datetime.now(), success=False))
+    assert guardrail.last_alert is not None
 
-def test_send_alert():
-    alert = Alert("guardrail_failure_rate_high", 5, 15, 30)
-    guardrail = Guardrail(alert)
-    guardrail.check_failure_rate(100, 6)
-    guardrail.send_alert()
+def test_guardrail_failure_rate_low():
+    guardrail = Guardrail(threshold=0.05, window_minutes=15, silence_minutes=30)
+    for i in range(100):
+        guardrail.add_call(Call(timestamp=datetime.now(), success=True))
+    for i in range(4):
+        guardrail.add_call(Call(timestamp=datetime.now(), success=False))
+    assert guardrail.last_alert is None
 
-def test_silence_alert():
-    alert = Alert("guardrail_failure_rate_high", 5, 15, 30)
-    guardrail = Guardrail(alert)
-    guardrail.check_failure_rate(100, 6)
-    guardrail.violations = [datetime.now() - timedelta(minutes=31)]
+def test_guardrail_silence_alert():
+    guardrail = Guardrail(threshold=0.05, window_minutes=15, silence_minutes=30)
+    for i in range(100):
+        guardrail.add_call(Call(timestamp=datetime.now(), success=True))
+    for i in range(6):
+        guardrail.add_call(Call(timestamp=datetime.now(), success=False))
+    assert guardrail.last_alert is not None
     guardrail.silence_alert()
-    assert guardrail.violations == []
-
-def test_main():
-    import sys
-    sys.argv = ["guardrail.py", "--total-calls", "100", "--blocked-calls", "6"]
-    from guardrail import main
-    main()
-
-def test_main_silence():
-    import sys
-    sys.argv = ["guardrail.py", "--total-calls", "100", "--blocked-calls", "4"]
-    from guardrail import main
-    main()
+    assert guardrail.last_alert is None
