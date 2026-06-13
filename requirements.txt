@@ -1,1 +1,1 @@
-# No dependencies required
+# No runtime dependencies; test dependencies can be installed via `pip install -e .[test]`

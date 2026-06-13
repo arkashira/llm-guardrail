@@ -1,13 +1,7 @@
 # llm-guardrail
 
-A tiny, pure‑Python library that records the last 100 LLM responses together with a
-policy status (`passed` / `blocked`) and serves a very small live dashboard.
+A small, real‑time guardrail for LLM responses.
 
-## Features
+When a response matches a configured policy pattern, it is replaced with a safe fallback message that includes the policy name and a link to the policy definition. All corrections are logged with a unique correction ID.
 
-* **In‑memory store** – keeps only the most recent 100 entries.
-* **HTML dashboard** – auto‑refreshes every 5 seconds, shows timestamp, module,
-  prompt snippet and response snippet.
-* **Zero runtime dependencies** – only the Python standard library.
-
-## Quick start
+## Installation

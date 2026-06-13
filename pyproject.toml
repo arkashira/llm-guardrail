@@ -1,10 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "llm-guardrail"
 version = "0.1.0"
-description = "In‑memory LLM output guardrail with a simple live dashboard."
-authors = [{name = "Axentx"}]
-requires-python = ">=3.9"
-dependencies = []
+description = "Real‑time LLM guardrail that corrects policy violations"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Axentx Engineer"}
+]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+[project.optional-dependencies]
+test = ["pytest"]
